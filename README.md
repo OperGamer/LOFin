@@ -30,6 +30,8 @@ AI-powered lost object finder using Raspberry Pi, TensorFlow Lite, Supabase, and
 ## SUPABASE SETUP:
 A Detections table and a Commands table with following configs
 <img width="979" height="481" alt="image" src="https://github.com/user-attachments/assets/d0e27131-1911-468c-bd9e-886b3124b9a5" />
+
+
 SQL Query for above:
   ```bash
   CREATE TABLE commands (
@@ -48,7 +50,7 @@ SQL Query for above:
     status TEXT,
     found BOOLEAN
   );
-
+```
 
 
   
