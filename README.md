@@ -25,9 +25,9 @@ pip install -r requirements.txt
   ## Place your TFLite model in:
   model/model.tflite
   ## Run:  
-    ```bash
-    python raspberry_pi/main.py
-
+  ```bash
+  python raspberry_pi/main.py
+  ```
 ## SUPABASE SETUP:
 A Detections table and a Commands table with following configs
 <img width="979" height="481" alt="image" src="https://github.com/user-attachments/assets/d0e27131-1911-468c-bd9e-886b3124b9a5" />
