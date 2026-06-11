@@ -18,7 +18,7 @@ AI-powered lost object finder using Raspberry Pi, TensorFlow Lite, Supabase, and
 - Python
 - Supabase
 - HTML/CSS/JavaScript
-```bash
+```
 pip install -r requirements.txt
 ```
 ## SETUP:
