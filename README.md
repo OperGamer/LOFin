@@ -51,6 +51,28 @@ SQL Query for above:
     found BOOLEAN
   );
 ```
+A Storage Bucket:
+<img width="1138" height="177" alt="image" src="https://github.com/user-attachments/assets/c846aef7-1284-4e63-9968-c6cc55f04fe3" />
+
+SQL Query for above:
+```bash
+INSERT INTO storage.buckets (id, name, public)
+VALUES ('keyfinder', 'keyfinder', true);
+```
+```bash
+CREATE POLICY "Allow uploads"
+ON storage.objects
+FOR INSERT
+TO public
+WITH CHECK (bucket_id = 'keyfinder');
+
+CREATE POLICY "Allow public access"
+ON storage.objects
+FOR SELECT
+TO public
+USING (bucket_id = 'keyfinder');
+```
+
 
 
   
