@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Lost Object Finder</title>
+
+  <!-- Supabase SDK -->
+  <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+
+  <style>
+    :root {
+      --bg1: #020617;
+      --bg2: #000000;
+      --card-bg: rgba(2,6,23,0.75);
+      --border: rgba(255,255,255,0.08);
+      --primary: linear-gradient(135deg, #2563eb, #60a5fa);
+      --text: #e5e7eb;
+      --muted: #94a3b8;
+      --success: #22c55e;
+      --warn: #eab308;
+      --error: #ef4444;
+    }
+
+    * {
+      box-sizing: border-box;
+      font-family: system-ui, -apple-system, sans-serif;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background:
+        radial-gradient(600px circle at 20% 10%, #1e3a8a33, transparent 40%),
+        radial-gradient(600px circle at 80% 90%, #0284c733, transparent 40%),
+        linear-gradient(180deg, var(--bg1), var(--bg2));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+      color: var(--text);
+    }
+
+    .card {
+      width: 100%;
+      max-width: 420px;
+      background: var(--card-bg);
+      backdrop-filter: blur(14px);
+      border-radius: 22px;
+      padding: 26px;
+      border: 1px solid var(--border);
+      box-shadow: 0 25px 50px rgba(0,0,0,0.6);
+    }
+
+    h1 {
+      margin: 0;
+      text-align: center;
+      font-size: 1.75rem;
+    }
+
+    .subtitle {
+      text-align: center;
+      color: var(--muted);
+      margin: 8px 0 24px;
+      font-size: 0.95rem;
+    }
+
+    .search {
+      display: flex;
+      gap: 10px;
+    }
+
+    input {
+      flex: 1;
+      padding: 14px 16px;
+      border-radius: 14px;
+      border: 1px solid var(--border);
+      background: rgba(2,6,23,0.6);
+      color: var(--text);
+      font-size: 1rem;
+      outline: none;
+    }
+
+    button {
+      padding: 14px 18px;
+      border-radius: 14px;
+      border: none;
+      background: var(--primary);
+      color: #fff;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    button.secondary {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--muted);
+    }
+
+    button:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    .status {
+      margin-top: 16px;
+      text-align: center;
+      font-weight: 600;
+      min-height: 24px;
+    }
+
+    .status.detected { color: var(--success); }
+    .status.last_seen { color: var(--warn); }
+    .status.not_detected { color: var(--error); }
+
+    .timer {
+      margin-top: 8px;
+      text-align: center;
+      font-size: 0.9rem;
+      color: var(--muted);
+    }
+
+    .loader {
+      margin: 16px auto 0;
+      width: 42px;
+      height: 42px;
+      border-radius: 50%;
+      border: 4px solid rgba(255,255,255,0.15);
+      border-top: 4px solid #60a5fa;
+      animation: spin 0.9s linear infinite;
+      display: none;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .image-box {
+      margin-top: 18px;
+      display: none;
+    }
+
+    .image-box img {
+      width: 100%;
+      border-radius: 16px;
+      border: 1px solid var(--border);
+    }
+
+    .actions {
+      margin-top: 14px;
+      display: none;
+      justify-content: center;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="card">
+    <h1>Lost Object Finder</h1>
+    <p class="subtitle">AI-powered object tracker</p>
+
+    <div class="search">
+      <input id="itemInput" placeholder="Find your lost item…" />
+      <button id="findBtn">Locate</button>
+    </div>
+
+    <div id="status" class="status"></div>
+    <div id="timer" class="timer"></div>
+    <div id="loader" class="loader"></div>
+
+    <div class="actions" id="actions">
+      <button class="secondary" id="cancelBtn">Cancel Search</button>
+    </div>
+
+    <div id="imageBox" class="image-box">
+      <img id="resultImage" />
+    </div>
+  </div>
+
+<script>
+  /* ================= CONFIG ================= */
+  const TIMEOUT_MS = 3 * 60 * 1000;
+  const POLL_INTERVAL = 3000;
+
+  /* ================= SUPABASE ================= */
+  const db = window.supabase.createClient(
+    "YOUR SUPABSE URL",
+    "YOUR SUPABASE ANON PUBLIC KEY"
+  );
+
+  /* ================= ELEMENTS ================= */
+  const btn = document.getElementById("findBtn");
+  const cancelBtn = document.getElementById("cancelBtn");
+  const input = document.getElementById("itemInput");
+  const statusEl = document.getElementById("status");
+  const timerEl = document.getElementById("timer");
+  const loader = document.getElementById("loader");
+  const imageBox = document.getElementById("imageBox");
+  const imgEl = document.getElementById("resultImage");
+  const actions = document.getElementById("actions");
+
+  let pollTimer = null;
+  let timeoutTimer = null;
+  let countdownTimer = null;
+  let remainingMs = TIMEOUT_MS;
+
+  function setStatus(text, cls = "") {
+    statusEl.textContent = text;
+    statusEl.className = "status " + cls;
+  }
+
+  function stopAllTimers() {
+    clearInterval(pollTimer);
+    clearTimeout(timeoutTimer);
+    clearInterval(countdownTimer);
+    timerEl.textContent = "";
+  }
+
+  function startCountdown() {
+    remainingMs = TIMEOUT_MS;
+    timerEl.textContent = "Time remaining: 3:00";
+
+    countdownTimer = setInterval(() => {
+      remainingMs -= 1000;
+      const m = Math.floor(remainingMs / 60000);
+      const s = Math.floor((remainingMs % 60000) / 1000);
+      timerEl.textContent = `Time remaining: ${m}:${s.toString().padStart(2,"0")}`;
+    }, 1000);
+  }
+
+  async function sendCommand(item) {
+    const { data, error } = await db
+      .from("commands")
+      .insert({ object_name: item, status: "pending" })
+      .select()
+      .single();
+    if (error) throw error;
+    return data.id;
+  }
+
+  async function pollDetection(commandId) {
+    const { data } = await db
+      .from("detections")
+      .select("*")
+      .eq("command_id", commandId)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .single();
+
+    if (!data) return;
+
+    stopAllTimers();
+    loader.style.display = "none";
+    actions.style.display = "none";
+    btn.disabled = false;
+
+    if (data.status === "detected") {
+      setStatus("Item detected!", "detected");
+      imgEl.src = data.image_url;
+      imageBox.style.display = "block";
+    } else if (data.status === "last_seen") {
+      setStatus("Item not visible. Showing last seen.", "last_seen");
+      imgEl.src = data.image_url;
+      imageBox.style.display = "block";
+    } else {
+      setStatus("Item not detected.", "not_detected");
+    }
+  }
+
+  btn.addEventListener("click", async () => {
+    const item = input.value.trim();
+    if (!item) return;
+
+    stopAllTimers();
+    imageBox.style.display = "none";
+    loader.style.display = "block";
+    actions.style.display = "flex";
+    btn.disabled = true;
+    setStatus("Searching…");
+    startCountdown();
+
+    try {
+      const commandId = await sendCommand(item);
+
+      pollTimer = setInterval(() => {
+        pollDetection(commandId);
+      }, POLL_INTERVAL);
+
+      timeoutTimer = setTimeout(() => {
+        stopAllTimers();
+        loader.style.display = "none";
+        actions.style.display = "none";
+        btn.disabled = false;
+
+        setStatus(
+          "Raspberry Pi is not turned on or not responding.",
+          "not_detected"
+        );
+      }, TIMEOUT_MS);
+
+    } catch {
+      stopAllTimers();
+      loader.style.display = "none";
+      actions.style.display = "none";
+      btn.disabled = false;
+      setStatus("Failed to send command.", "not_detected");
+    }
+  });
+
+  cancelBtn.addEventListener("click", () => {
+    stopAllTimers();
+    loader.style.display = "none";
+    actions.style.display = "none";
+    btn.disabled = false;
+    setStatus("Search cancelled by user.", "not_detected");
+  });
+</script>
+</body>
+</html>
