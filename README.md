@@ -18,8 +18,12 @@ AI-powered lost object finder using Raspberry Pi, TensorFlow Lite, Supabase, and
 - Python
 - Supabase
 - HTML/CSS/JavaScript
-
-## Setup
-
-```bash
-pip install -r requirements.txt
+  ```bash
+  pip install -r requirements.txt
+## SETUP:
+  ## Place your TFLite model in:
+  model/model.tflite
+  ## Run:  
+  ```bash
+  python raspberry_pi/main.py
+  
