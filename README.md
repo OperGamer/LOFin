@@ -24,6 +24,31 @@ AI-powered lost object finder using Raspberry Pi, TensorFlow Lite, Supabase, and
   ## Place your TFLite model in:
   model/model.tflite
   ## Run:  
+    ```bash
+    python raspberry_pi/main.py
+
+## SUPABASE SETUP:
+A Detections table and a Commands table with following configs
+<img width="979" height="481" alt="image" src="https://github.com/user-attachments/assets/d0e27131-1911-468c-bd9e-886b3124b9a5" />
+SQL Query for above:
   ```bash
-  python raspberry_pi/main.py
+  CREATE TABLE commands (
+    id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    object_name TEXT NOT NULL,
+    status TEXT,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+  );
+
+  CREATE TABLE detections (
+    id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    command_id BIGINT REFERENCES commands(id),
+    confidence DOUBLE PRECISION,
+    image_url TEXT,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    status TEXT,
+    found BOOLEAN
+  );
+
+
+
   
