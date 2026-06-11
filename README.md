@@ -4,7 +4,7 @@ AI-powered lost object finder using Raspberry Pi, TensorFlow Lite, Supabase, and
 
 ## Features
 
-- Voice/text-based object search
+- Text-based object search
 - TensorFlow Lite object detection
 - Supabase integration
 - Web dashboard
